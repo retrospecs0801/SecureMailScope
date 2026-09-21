@@ -1,0 +1,6 @@
+# Certificates are mounted at runtime and must never be sent in the build context.
+certs/*
+!certs/.gitkeep
+capture/*.pcapng
+__pycache__/
+**/__pycache__/

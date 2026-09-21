@@ -1,0 +1,21 @@
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[dn]
+C = IN
+ST = Uttar Pradesh
+L = Lucknow
+O = SecureMailScope
+OU = SMTP Infrastructure
+CN = mail.securemailscope.local
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = mail.securemailscope.local
+DNS.2 = localhost

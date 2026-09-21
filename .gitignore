@@ -1,0 +1,13 @@
+# Generated local test-PKI material. Recreate with docker compose --profile tools run --rm certgen.
+certs/ca.key
+certs/ca.crt
+certs/ca.srl
+certs/server.key
+certs/server.csr
+certs/server.crt
+certs/scenarios/
+capture/*.pcapng
+capture/*.json
+
+# Keep the certificate directory present in a fresh checkout.
+!certs/.gitkeep

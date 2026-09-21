@@ -1,0 +1,37 @@
+services:
+  postfix:
+    build:
+      context: .
+    image: securemailscope-postfix-tls12:local
+    container_name: securemailscope-postfix
+    hostname: mail.securemailscope.local
+    ports:
+      - "2525:25"
+      - "2465:465"
+    volumes:
+      - ./certs:/etc/postfix/certs:ro
+    environment:
+      HOSTNAME: mail.securemailscope.local
+      # Allows the Docker Desktop host gateway while keeping this harness local-only.
+      POSTFIX_mynetworks: "127.0.0.0/8 172.16.0.0/12"
+      ALLOW_EMPTY_SENDER_DOMAINS: "1"
+      TLS_SCENARIO: "${TLS_SCENARIO:-tls12_strong}"
+      CERT_PROFILE: "${CERT_PROFILE:-baseline}"
+    healthcheck:
+      test: ["CMD-SHELL", "postfix status >/dev/null 2>&1 && nc -z -w 2 127.0.0.1 25"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: "no"
+
+  certgen:
+    build:
+      context: .
+    image: securemailscope-postfix-tls12:local
+    profiles: ["tools"]
+    entrypoint: ["/usr/local/bin/generate-certs"]
+    environment:
+      FORCE_REGENERATE: "${FORCE_REGENERATE:-0}"
+    volumes:
+      - ./certs:/certs
