@@ -1,0 +1,16 @@
+tls_version_ordinal,cipher_is_aead,cipher_is_legacy_weak,key_exchange_has_forward_secrecy,key_exchange_mechanism_cat,cert_available,cert_leaf_expired,cert_leaf_not_yet_valid,cert_leaf_self_signed,cert_chain_complete,cert_issuer_verified,cert_leaf_key_size,cert_leaf_key_algo_cat,cert_leaf_sig_algo_strength,encryption_mode_cat,server_port,port_is_recognized_mail_port,label,scenario_name
+3,True,False,1,ECDHE,True,False,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,low,tls12_strong
+3,True,False,1,ECDHE,True,False,False,False,True,True,256,EC,2,STARTTLS,2525,False,low,tls12_aead_ecdsa
+4,True,False,1,ECDHE,False,-1,-1,-1,-1,-1,-1,unavailable,-1,STARTTLS,2525,False,low,tls13_modern
+3,True,False,1,ECDHE,True,False,False,False,True,True,4096,RSA,2,STARTTLS,2525,False,low,tls12_rsa4096
+3,True,False,1,ECDHE,True,False,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,low,tls12_valid_window
+3,True,False,1,ECDHE,True,False,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,low,tls12_valid_san
+3,True,False,1,ECDHE,True,False,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,low,tls12_valid_serial
+3,True,False,1,ECDHE,True,True,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,critical,tls12_expired
+3,True,False,1,ECDHE,True,True,False,False,True,True,256,EC,2,STARTTLS,2525,False,critical,tls12_expired_ecdsa
+3,True,False,1,ECDHE,True,True,False,False,True,True,4096,RSA,2,STARTTLS,2525,False,critical,tls12_expired_rsa4096
+3,True,False,1,ECDHE,True,True,False,False,True,True,2048,RSA,1,STARTTLS,2525,False,critical,tls12_expired_weak_sig
+1,False,False,0,RSA,True,False,False,False,True,True,2048,RSA,2,STARTTLS,2525,False,critical,tls10_deprecated
+3,True,False,1,ECDHE,True,False,False,False,True,True,1024,RSA,2,STARTTLS,2525,False,critical,tls12_rsa1024
+3,True,False,1,ECDHE,True,False,False,True,True,True,2048,RSA,2,STARTTLS,2525,False,critical,tls12_self_signed_leaf
+3,True,False,1,ECDHE,True,False,False,False,True,True,2048,RSA,1,STARTTLS,2525,False,critical,sha1_signature

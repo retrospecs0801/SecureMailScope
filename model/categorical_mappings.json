@@ -1,0 +1,17 @@
+{
+  "key_exchange_mechanism_cat": {
+    "unknown": 0,
+    "ECDHE": 1,
+    "RSA": 2
+  },
+  "cert_leaf_key_algo_cat": {
+    "unknown": 0,
+    "RSA": 1,
+    "EC": 2,
+    "unavailable": 3
+  },
+  "encryption_mode_cat": {
+    "unknown": 0,
+    "STARTTLS": 1
+  }
+}

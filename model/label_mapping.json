@@ -1,0 +1,6 @@
+{
+  "low": 0,
+  "moderate": 1,
+  "high": 2,
+  "critical": 3
+}

@@ -16,7 +16,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=2525)
     parser.add_argument("--mode", choices=("starttls", "implicit"), default="starttls")
-    parser.add_argument("--tls-version", choices=("1.2", "1.3"), default="1.2")
+    parser.add_argument("--tls-version", choices=("1.0", "1.2", "1.3"), default="1.2")
     parser.add_argument("--cipher", help="TLS <=1.2 OpenSSL cipher list; TLS 1.3 suites are provider-selected")
     parser.add_argument("--ca-file", type=Path, default=Path("certs/ca.crt"))
     parser.add_argument("--sender", default="sender@securemailscope.local")
@@ -34,15 +34,24 @@ def main() -> int:
         return 2
 
     context = ssl.create_default_context(cafile=str(args.ca_file))
-    version = ssl.TLSVersion.TLSv1_2 if args.tls_version == "1.2" else ssl.TLSVersion.TLSv1_3
+    version = {
+        "1.0": ssl.TLSVersion.TLSv1,
+        "1.2": ssl.TLSVersion.TLSv1_2,
+        "1.3": ssl.TLSVersion.TLSv1_3,
+    }[args.tls_version]
     context.minimum_version = version
     context.maximum_version = version
     if args.insecure_test_only:
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
         print("Certificate verification: deliberately disabled (--insecure-test-only)")
-    if args.cipher:
+    if args.cipher and args.tls_version != "1.3":
         context.set_ciphers(args.cipher)
+    elif args.cipher and args.tls_version == "1.3":
+        raise RuntimeError(
+            "TLS 1.3 cipher selection is unsupported by this Python/OpenSSL runtime: "
+            "SSLContext.set_ciphersuites() is unavailable"
+        )
 
     message = EmailMessage()
     message["From"] = args.sender

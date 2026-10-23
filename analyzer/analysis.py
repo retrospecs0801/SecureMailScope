@@ -22,7 +22,7 @@ OID_NAMES = {
 }
 
 
-def _finding(check: str, observed: object, risk: str, reference: str, rationale: str, confidence: str) -> dict:
+def _finding(check: str, observed: object, risk: str, reference: str, rationale: str, confidence: str, contributes_to_score: bool = True) -> dict:
     return {
         "check": check,
         "observed_value": str(observed),
@@ -30,6 +30,7 @@ def _finding(check: str, observed: object, risk: str, reference: str, rationale:
         "reference": reference,
         "rationale": rationale,
         "confidence": confidence,
+        "contributes_to_score": bool(contributes_to_score),
     }
 
 
@@ -151,17 +152,23 @@ def _encryption_finding(session: dict, confidence: str) -> dict:
     port = session.get("network", {}).get("server", {}).get("port")
     if encryption == "STARTTLS" and port in OPPORTUNISTIC_PORTS:
         risk, rationale = "low", f"STARTTLS is used on opportunistic mail port {port}, which is expected."
+        contributes = True
     elif encryption == "none" and port in OPPORTUNISTIC_PORTS:
         risk, rationale = "high", f"STARTTLS was not used on opportunistic port {port}; a plaintext session was observed (RFC 3207 / RFC 8314)."
+        contributes = True
     elif encryption == "none" and port in IMPLICIT_TLS_PORTS:
         risk, rationale = "critical", f"Plaintext protocol was observed on implicit-TLS port {port}, indicating an implicit-TLS bypass (RFC 8314)."
+        contributes = True
     elif encryption == "implicit_tls" and port in IMPLICIT_TLS_PORTS:
         risk, rationale = "low", f"Implicit TLS is used on implicit-TLS port {port}, which is expected."
+        contributes = True
     elif port not in OPPORTUNISTIC_PORTS | IMPLICIT_TLS_PORTS:
         risk, rationale = "moderate", f"Encryption mode {encryption} was observed on nonstandard mail port {port}; the port mapping is ambiguous."
+        contributes = False
     else:
         risk, rationale = "moderate", f"Encryption mode {encryption} does not match the expected behavior for server port {port}."
-    return _finding("encryption_transition", f"{encryption} on port {port}", risk, "RFC 3207 / RFC 8314", rationale, confidence)
+        contributes = True
+    return _finding("encryption_transition", f"{encryption} on port {port}", risk, "RFC 3207 / RFC 8314", rationale, confidence, contributes)
 
 
 def analyze_session(session: dict) -> dict:
@@ -173,7 +180,12 @@ def analyze_session(session: dict) -> dict:
     findings.extend(_certificate_findings(session, confidence, warnings))
     findings.append(_encryption_finding(session, confidence))
 
-    scorable = [finding for finding in findings if finding["risk_level"] in RISK_VALUES]
+    scorable = [
+        finding for finding in findings
+        if finding.get("risk_level") in RISK_VALUES
+        and finding.get("risk_level") != "data_unavailable"
+        and bool(finding.get("contributes_to_score", True))
+    ]
     score = max((RISK_VALUES[finding["risk_level"]] for finding in scorable), default=0)
     independent_high = {
         finding["check"].split("[", 1)[0]

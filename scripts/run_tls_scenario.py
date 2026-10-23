@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Generate one real local SMTP/TLS PCAP fixture and parse it."""
+"""Generate one real local SMTP/TLS PCAP fixture and parse it.
+
+The prototype dataset intentionally covers only the low and critical extremes.
+A model trained on ~15-20 examples cannot be trusted to draw reliable
+boundaries in the ambiguous moderate/high middle tier. It is better to be
+honest that this prototype demonstrates clearly-secure versus clearly-broken
+configurations, with moderate/high classification as explicit future work,
+than to claim four-class coverage from a dataset too small to support it.
+"""
 
 from __future__ import annotations
 
@@ -23,15 +31,29 @@ class Scenario:
     certificate_profile: str
     pcap: str
     client_args: tuple[str, ...]
+    label: str = ""
 
 
 SCENARIOS = {
-    "tls12_strong": Scenario("tls12_strong", "baseline", "postfix_tls12.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384")),
+    "tls12_strong": Scenario("tls12_strong", "baseline", "postfix_tls12.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384"), "low"),
+    "tls12_aead_ecdsa": Scenario("tls12_aead", "ecdsa", "postfix_tls12_aead_ecdsa.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-ECDSA-AES128-GCM-SHA256"), "low"),
+    "tls13_modern": Scenario("tls13_modern", "baseline", "postfix_tls13.pcapng", ("--tls-version", "1.3"), "low"),
+    # Python 3.13/OpenSSL 3.0.16 in this environment has no set_ciphersuites();
+    # do not claim a ChaCha20 row when the requested suite cannot be forced.
+    "tls12_rsa4096": Scenario("tls12_strong", "rsa4096", "postfix_tls12_rsa4096.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384"), "low"),
+    "tls12_valid_window": Scenario("tls12_strong", "baseline", "postfix_tls12_valid_window.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384"), "low"),
+    "tls12_valid_san": Scenario("tls12_strong", "baseline", "postfix_tls12_valid_san.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384"), "low"),
+    "tls12_valid_serial": Scenario("tls12_strong", "baseline", "postfix_tls12_valid_serial.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384"), "low"),
+    "tls12_expired": Scenario("tls12_strong", "expired", "postfix_tls12_expired_cert.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--ca-file", "certs/scenarios/expired/ca.crt", "--expect-verification-failure"), "critical"),
+    "tls12_expired_ecdsa": Scenario("tls12_aead", "expired_ecdsa", "postfix_tls12_expired_ecdsa.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-ECDSA-AES128-GCM-SHA256", "--ca-file", "certs/scenarios/expired_ecdsa/ca.crt", "--expect-verification-failure"), "critical"),
+    "tls12_expired_rsa4096": Scenario("tls12_strong", "expired_rsa4096", "postfix_tls12_expired_rsa4096.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--ca-file", "certs/scenarios/expired_rsa4096/ca.crt", "--expect-verification-failure"), "critical"),
+    "tls12_expired_weak_sig": Scenario("tls12_strong", "expired_sha1", "postfix_tls12_expired_weak_sig.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--ca-file", "certs/scenarios/expired_sha1/ca.crt", "--expect-verification-failure"), "critical"),
+    "tls10_deprecated": Scenario("tls10_deprecated", "baseline", "postfix_tls10_deprecated.pcapng", ("--tls-version", "1.0", "--cipher", "AES128-SHA:@SECLEVEL=0", "--insecure-test-only"), "critical"),
+    "tls12_rsa1024": Scenario("tls12_weak_key", "rsa1024", "postfix_tls12_rsa1024.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384:@SECLEVEL=0", "--ca-file", "certs/scenarios/rsa1024/ca.crt", "--insecure-test-only"), "critical"),
+    "tls12_self_signed_leaf": Scenario("tls12_strong", "self_signed_leaf", "postfix_tls12_self_signed_leaf.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--insecure-test-only"), "critical"),
+    "sha1_signature": Scenario("tls12_strong", "sha1", "postfix_sha1_signature.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--insecure-test-only"), "critical"),
     "tls12_legacy": Scenario("tls12_legacy", "baseline", "postfix_tls12_legacy_aes128_sha.pcapng", ("--tls-version", "1.2", "--cipher", "AES128-SHA")),
-    "tls12_expired": Scenario("tls12_strong", "expired", "postfix_tls12_expired_cert.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--ca-file", "certs/scenarios/expired/ca.crt", "--expect-verification-failure")),
     "tls12_wrong_san": Scenario("tls12_strong", "wrong_san", "postfix_tls12_wrong_san.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384", "--ca-file", "certs/scenarios/wrong_san/ca.crt", "--expect-verification-failure")),
-    "tls12_rsa1024": Scenario("tls12_weak_key", "rsa1024", "postfix_tls12_rsa1024.pcapng", ("--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384:@SECLEVEL=0", "--ca-file", "certs/scenarios/rsa1024/ca.crt", "--insecure-test-only")),
-    "tls13_modern": Scenario("tls13_modern", "baseline", "postfix_tls13.pcapng", ("--tls-version", "1.3")),
     "implicit_tls12": Scenario("implicit_tls12", "baseline", "postfix_implicit_tls12.pcapng", ("--mode", "implicit", "--port", "2465", "--tls-version", "1.2", "--cipher", "ECDHE-RSA-AES256-GCM-SHA384")),
 }
 
@@ -66,6 +88,24 @@ def wait_for_postfix(environment: dict[str, str]) -> None:
     raise RuntimeError("Postfix did not finish starting within 45 seconds")
 
 
+def stop_previous_postfix(environment: dict[str, str]) -> None:
+    command("docker", "compose", "stop", "postfix", env=environment)
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        running = subprocess.run(
+            ("docker", "compose", "ps", "-q", "--status", "running", "postfix"),
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+        )
+        if not running.stdout.strip():
+            command("docker", "compose", "rm", "-f", "postfix", env=environment)
+            return
+        time.sleep(1)
+    raise RuntimeError("previous Postfix container did not stop within 15 seconds")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("scenario", choices=sorted(SCENARIOS))
@@ -79,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("tshark is required to generate a fixture; it was not found on PATH")
 
     command("docker", "compose", "--profile", "tools", "run", "--rm", "certgen", env=environment)
+    stop_previous_postfix(environment)
     command("docker", "compose", "up", "-d", "--force-recreate", "postfix", env=environment)
     port = 2465 if "--mode" in selected.client_args else 2525
     wait_for_postfix(environment)

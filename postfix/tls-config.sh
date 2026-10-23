@@ -42,6 +42,20 @@ case "$tls_scenario" in
             postconf -e 'tls_high_cipherlist = ECDHE-RSA-AES256-GCM-SHA384'
         fi
         ;;
+    tls12_aead)
+        postconf -e 'smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1, !TLSv1.3'
+        postconf -e 'smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1, !TLSv1.3'
+        postconf -e 'smtpd_tls_ciphers = high'
+        postconf -e 'smtpd_tls_mandatory_ciphers = high'
+        postconf -e 'tls_high_cipherlist = ECDHE-ECDSA-AES128-GCM-SHA256'
+        ;;
+    tls10_deprecated)
+        postconf -e 'smtpd_tls_protocols = TLSv1'
+        postconf -e 'smtpd_tls_mandatory_protocols = TLSv1'
+        postconf -e 'smtpd_tls_ciphers = low'
+        postconf -e 'smtpd_tls_mandatory_ciphers = low'
+        postconf -e 'tls_low_cipherlist = AES128-SHA:@SECLEVEL=0'
+        ;;
     tls12_legacy)
         # Isolated local fixture: static RSA + CBC + SHA-1 is intentionally legacy.
         postconf -e 'smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1, !TLSv1.3'
